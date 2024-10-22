@@ -4,12 +4,15 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
 from pymongo import MongoClient
 import time
+import re
 
 # Kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client['pharmacity']
 client.drop_database('pharmacity')
-products_collection = db['products']  # Tên collection
+
+products_collection = db['products']
+sales_collection = db['sales']
 
 # Khởi tạo WebDriver cho Firefox
 driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
@@ -40,54 +43,70 @@ def scrape_product(product_link):
         product_name = "N/A"
 
     try:
-        product_img = driver.find_element(By.TAG_NAME, 'img').get_attribute('src')
+        product_img = driver.find_element(By.XPATH,
+                                          '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[1]/div/div[1]/div/div/div[1]/div/img').get_attribute(
+            'src')
     except:
         product_img = "N/A"
 
     # Lấy thương hiệu
     try:
-        product_brand = driver.find_element(By.CSS_SELECTOR, "div.md\\:text-base").text
+        product_brand = driver.find_element(By.CSS_SELECTOR,
+                                            '#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(5) > div').text
     except:
         product_brand = "N/A"
 
     # Lấy giá bán
     try:
         product_price = driver.find_element(By.TAG_NAME, 'h3').text
+        # Sử dụng regex để loại bỏ các ký tự không phải số và dấu phân cách thập phân
+        # Giữ lại số và dấu chấm (.)
+        cleaned_price_str = re.sub(r'[^\d.]', '', product_price)
+        product_price = float(cleaned_price_str) * 1000
     except:
         product_price = "N/A"
 
     # Lấy lượt yêu thích (nếu có)
     try:
         product_likes = driver.find_element(By.CSS_SELECTOR, 'div.space-x-1:nth-child(2) > p:nth-child(1)').text
+        cleaned_likes_str = re.sub(r'[^\d.]', '', product_likes)
+        product_likes = float(cleaned_likes_str) * 1000
     except:
         product_likes = "N/A"
 
     # Lấy số lượng bán (nếu có)
     try:
         product_sold = driver.find_element(By.CSS_SELECTOR, 'p.text-sm:nth-child(3)').text
+        cleaned_sold_str = re.sub(r'[^\d.]', '', product_sold)
+        product_sold = float(cleaned_sold_str) * 1000
     except:
         product_sold = "N/A"
 
-    if product_price == "N/A":
-        product_type = "Kê đơn"
-    else:
-        product_type = "Không kê đơn"
+    try:
+        product_type = driver.find_element(By.CSS_SELECTOR, "div.md\\:text-base").text
+    except:
+        product_type = "N/A"
 
     # Tạo từ điển lưu thông tin sản phẩm
     product_data = {
-        "Mã sản phẩm": product_code,
-        "Tên sản phẩm": product_name,
-        "Loại sản phẩm": product_type,
-        "Hình ảnh": product_img,
-        "Thương hiệu": product_brand,
-        "Giá bán": product_price,
-        "Lượt yêu thích": product_likes,
-        "Số lượng bán": product_sold,
-        "Link sản phẩm": product_link
+        "Product_ID": product_code,
+        "Product_Name": product_name,
+        "Type": product_type,
+        "Img": product_img,
+        "Brand": product_brand,
+        "Price": product_price,
+        "Link": product_link
+    }
+    sale_data = {
+        "Product_ID": product_code,
+        "Product_Name": product_name,
+        "Likes": product_likes,
+        "Sold": product_sold
     }
 
     # Lưu vào MongoDB
     products_collection.insert_one(product_data)
+    sales_collection.insert_one(sale_data)
     print(f"Đã lưu: {product_name}")
 
 
@@ -103,7 +122,7 @@ def load_more_products():
 # Hàm cuộn trang xuống cuối để tải thêm sản phẩm
 def scroll_down():
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(2)  # Đợi một chút để các sản phẩm tải xuống
+    time.sleep(2)
 
 
 # Lấy danh sách link sản phẩm
@@ -116,22 +135,14 @@ def get_product_links():
     return product_links
 
 
-# Cào dữ liệu từ trang đầu và tiếp tục nhấn "Xem thêm"
+# Cào dữ liệu từ trang web
 while True:
-    # Lấy danh sách link sản phẩm trên trang hiện tại
+    # Lấy danh sách link sản phẩm trên trang
     links = get_product_links()
 
     # Cào dữ liệu từng sản phẩm
     for link in links:
         scrape_product(link)
 
-    # Cuộn xuống cuối trang để tải thêm sản phẩm
-    scroll_down()
-
-    # Nhấn nút "Xem thêm" nếu có
-    # try:
-    #     load_more_products()
-    # except:
-    #     break  # Nếu không còn nút "Xem thêm", thoát khỏi vòng lặp
-
 driver.quit()
+
