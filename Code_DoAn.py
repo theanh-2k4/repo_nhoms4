@@ -56,6 +56,12 @@ def scrape_product(product_link):
     except:
         product_brand = "N/A"
 
+    # Lấy nơi sản xuất
+    try:
+        product_origin = driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[2]/div/div[3]/div[2]/div/a').text
+    except:
+        product_origin = "N/A"
+
     # Lấy giá bán
     try:
         product_price = driver.find_element(By.TAG_NAME, 'h3').text
@@ -94,6 +100,7 @@ def scrape_product(product_link):
         "Type": product_type,
         "Img": product_img,
         "Brand": product_brand,
+        "Prpduct_origin": product_origin,
         "Price": product_price,
         "Link": product_link
     }
@@ -110,19 +117,19 @@ def scrape_product(product_link):
     print(f"Đã lưu: {product_name}")
 
 
-# Hàm nhấn nút "Xem thêm" để tải thêm sản phẩm
-def load_more_products():
-    try:
-        load_more_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Xem thêm')]")
-        load_more_button.click()
-        time.sleep(3)  # Đợi trang tải thêm sản phẩm
-    except:
-        print("Không còn sản phẩm để tải thêm.")
-
-# Hàm cuộn trang xuống cuối để tải thêm sản phẩm
-def scroll_down():
-    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    time.sleep(2)
+# # Hàm nhấn nút "Xem thêm" để tải thêm sản phẩm
+# def load_more_products():
+#     try:
+#         load_more_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Xem thêm')]")
+#         load_more_button.click()
+#         time.sleep(3)  # Đợi trang tải thêm sản phẩm
+#     except:
+#         print("Không còn sản phẩm để tải thêm.")
+#
+# # Hàm cuộn trang xuống cuối để tải thêm sản phẩm
+# def scroll_down():
+#     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+#     time.sleep(2)
 
 
 # Lấy danh sách link sản phẩm
@@ -137,12 +144,15 @@ def get_product_links():
 
 # Cào dữ liệu từ trang web
 while True:
-    # Lấy danh sách link sản phẩm trên trang
-    links = get_product_links()
+    try:
+        # Lấy danh sách link sản phẩm trên trang
+        links = get_product_links()
 
-    # Cào dữ liệu từng sản phẩm
-    for link in links:
-        scrape_product(link)
-
+        # Cào dữ liệu từng sản phẩm
+        for link in links:
+            scrape_product(link)
+    except:
+        print("Đã lưu hết dược phẩm!")
+        break
 driver.quit()
 
