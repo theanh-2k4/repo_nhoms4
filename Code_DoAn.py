@@ -8,11 +8,12 @@ import re
 
 # Kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
-db = client['pharmacity']
-client.drop_database('pharmacity')
+db = client['pharmacity_t']
+client.drop_database('pharmacity_t')
 
 products_collection = db['products']
 sales_collection = db['sales']
+products_detail = db['details']
 
 # Khởi tạo WebDriver cho Firefox
 driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
@@ -28,7 +29,7 @@ time.sleep(3)
 def scrape_product(product_link):
     # Mở link sản phẩm
     driver.get(product_link)
-    time.sleep(2)
+    time.sleep(3)
 
     # Lấy mã sản phẩm
     try:
@@ -93,6 +94,24 @@ def scrape_product(product_link):
     except:
         product_type = "N/A"
 
+    # Lấy quy cách
+    try:
+        product_spec = driver.find_element(By.CSS_SELECTOR, "h1.text-neutral-900.font-semibold").text
+        ps = re.search(r'\((.*?)\)', product_spec)
+        product_spec = ps.group(1)
+    except:
+        product_spec = "N/A"
+
+    try:
+        active_element = driver.find_element(By.CSS_SELECTOR, "#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(2) > div").text
+    except:
+        active_element = "N/A"
+
+    try:
+        indication = driver.find_element(By.CSS_SELECTOR, "#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(3) > div").text
+    except:
+        indication = "N/A"
+
     # Tạo từ điển lưu thông tin sản phẩm
     product_data = {
         "Product_ID": product_code,
@@ -111,26 +130,19 @@ def scrape_product(product_link):
         "Sold": product_sold
     }
 
+    detail_data = {
+        "Product_ID": product_code,
+        "Product_Name": product_name,
+        "Product_Spec": product_spec,
+        "Active_element": active_element,
+        "Indication": indication
+    }
+
     # Lưu vào MongoDB
     products_collection.insert_one(product_data)
     sales_collection.insert_one(sale_data)
+    products_detail.insert_one(detail_data)
     print(f"Đã lưu: {product_name}")
-
-
-# # Hàm nhấn nút "Xem thêm" để tải thêm sản phẩm
-# def load_more_products():
-#     try:
-#         load_more_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Xem thêm')]")
-#         load_more_button.click()
-#         time.sleep(3)  # Đợi trang tải thêm sản phẩm
-#     except:
-#         print("Không còn sản phẩm để tải thêm.")
-#
-# # Hàm cuộn trang xuống cuối để tải thêm sản phẩm
-# def scroll_down():
-#     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-#     time.sleep(2)
-
 
 # Lấy danh sách link sản phẩm
 def get_product_links():
