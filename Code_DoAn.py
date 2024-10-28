@@ -8,8 +8,8 @@ import re
 
 # Kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
-db = client['pharmacity_t']
-client.drop_database('pharmacity_t')
+db = client['pharmacity']
+client.drop_database('pharmacity')
 
 products_collection = db['products']
 sales_collection = db['sales']
@@ -50,18 +50,18 @@ def scrape_product(product_link):
     except:
         product_img = "N/A"
 
-    # Lấy thương hiệu
-    try:
-        product_brand = driver.find_element(By.CSS_SELECTOR,
-                                            '#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(5) > div').text
-    except:
-        product_brand = "N/A"
-
     # Lấy nơi sản xuất
     try:
-        product_origin = driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[2]/div/div[3]/div[2]/div/a').text
+        product_origin = driver.find_element(By.CSS_SELECTOR,
+                                            '#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(5) > div').text
     except:
         product_origin = "N/A"
+
+    # Lấy thương hiệu
+    try:
+        product_brand = driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[2]/div/div[3]/div[2]/div/a').text
+    except:
+        product_brand = "N/A"
 
     # Lấy giá bán
     try:
@@ -116,10 +116,8 @@ def scrape_product(product_link):
     product_data = {
         "Product_ID": product_code,
         "Product_Name": product_name,
-        "Type": product_type,
         "Img": product_img,
         "Brand": product_brand,
-        "Prpduct_origin": product_origin,
         "Price": product_price,
         "Link": product_link
     }
@@ -133,38 +131,56 @@ def scrape_product(product_link):
     detail_data = {
         "Product_ID": product_code,
         "Product_Name": product_name,
+        "Type": product_type,
         "Product_Spec": product_spec,
+        "Product_origin": product_origin,
         "Active_element": active_element,
         "Indication": indication
     }
 
     # Lưu vào MongoDB
     products_collection.insert_one(product_data)
-    sales_collection.insert_one(sale_data)
     products_detail.insert_one(detail_data)
+    if product_type == "Thuốc không kê đơn":
+        sales_collection.insert_one(sale_data)
+
     print(f"Đã lưu: {product_name}")
+
+# Hàm cuộn xuống cuối trang và nhấn nút xem thêm
+def load_all_products():
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+        try:
+            # Tìm nút "Xem thêm" và nhấn vào nó
+            load_more_button = driver.find_element(By.XPATH, "//button[span[contains(text(), 'Xem thêm')]]")
+            load_more_button.click()
+            time.sleep(2)
+        except:
+            break
 
 # Lấy danh sách link sản phẩm
 def get_product_links():
     product_links = []
-    products = driver.find_elements(By.CSS_SELECTOR, "a:has(h3.line-clamp-2.h-10.text-sm.font-semibold)")
-    for product in products:
-        product_link = product.get_attribute("href")
-        product_links.append(product_link)
+    try:
+        products = driver.find_elements(By.CSS_SELECTOR, "a:has(h3.line-clamp-2.h-10.text-sm.font-semibold)")
+        for product in products:
+            product_link = product.get_attribute("href")
+            product_links.append(product_link)
+            print(product_link)
+    except Exception as e:
+        print(f"Error: {e}")
     return product_links
 
 
-# Cào dữ liệu từ trang web
-while True:
-    try:
-        # Lấy danh sách link sản phẩm trên trang
-        links = get_product_links()
 
-        # Cào dữ liệu từng sản phẩm
-        for link in links:
-            scrape_product(link)
-    except:
-        print("Đã lưu hết dược phẩm!")
-        break
+
+load_all_products()
+links = get_product_links()
+#print(f'Tổng số link sản phẩm {len(links)} \n')
+
+# Cào dữ liệu từ trang web
+for link in links:
+    scrape_product(link)
 driver.quit()
 
