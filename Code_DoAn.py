@@ -20,8 +20,6 @@ driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 
 # Truy cập vào trang dược phẩm
 driver.get("https://www.pharmacity.vn/duoc-pham")
-
-# Đợi trang tải
 time.sleep(3)
 
 
