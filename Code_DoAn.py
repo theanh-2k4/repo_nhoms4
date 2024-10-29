@@ -68,7 +68,7 @@ def scrape_product(product_link):
         # Sử dụng regex để loại bỏ các ký tự không phải số và dấu phân cách thập phân
         # Giữ lại số và dấu chấm (.)
         cleaned_price_str = re.sub(r'[^\d.]', '', product_price)
-        product_price = float(cleaned_price_str) * 1000
+        product_price = float(cleaned_price_str)
     except:
         product_price = "N/A"
 
@@ -118,6 +118,7 @@ def scrape_product(product_link):
     product_data = {
         "Product_ID": product_code,
         "Product_Name": product_name,
+        "Type": product_type,
         "Img": product_img,
         "Brand": product_brand,
         "Price": product_price,
@@ -133,7 +134,6 @@ def scrape_product(product_link):
     detail_data = {
         "Product_ID": product_code,
         "Product_Name": product_name,
-        "Type": product_type,
         "Product_Spec": product_spec,
         "Product_origin": product_origin,
         "Active_element": active_element,
