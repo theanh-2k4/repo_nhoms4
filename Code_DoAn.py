@@ -76,7 +76,7 @@ def scrape_product(product_link):
     try:
         product_likes = driver.find_element(By.CSS_SELECTOR, 'div.space-x-1:nth-child(2) > p:nth-child(1)').text
         cleaned_likes_str = re.sub(r'[^\d.]', '', product_likes)
-        product_likes = float(cleaned_likes_str) * 1000
+        product_likes = int(cleaned_likes_str) * 1000
     except:
         product_likes = "N/A"
 
@@ -84,7 +84,7 @@ def scrape_product(product_link):
     try:
         product_sold = driver.find_element(By.CSS_SELECTOR, 'p.text-sm:nth-child(3)').text
         cleaned_sold_str = re.sub(r'[^\d.]', '', product_sold)
-        product_sold = float(cleaned_sold_str) * 1000
+        product_sold = int(cleaned_sold_str) * 1000
     except:
         product_sold = "N/A"
 
