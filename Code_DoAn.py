@@ -43,6 +43,7 @@ def scrape_product(product_link):
     except:
         product_name = "N/A"
 
+    # Lấy hình ảnh
     try:
         product_img = driver.find_element(By.XPATH,
                                           '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[1]/div/div[1]/div/div/div[1]/div/img').get_attribute(
@@ -73,7 +74,7 @@ def scrape_product(product_link):
     except:
         product_price = "N/A"
 
-    # Lấy lượt yêu thích (nếu có)
+    # Lấy lượt yêu thích
     try:
         product_likes = driver.find_element(By.CSS_SELECTOR, 'div.space-x-1:nth-child(2) > p:nth-child(1)').text
         cleaned_likes_str = re.sub(r'[^\d.]', '', product_likes)
@@ -81,7 +82,7 @@ def scrape_product(product_link):
     except:
         product_likes = "N/A"
 
-    # Lấy số lượng bán (nếu có)
+    # Lấy số lượng bán
     try:
         product_sold = driver.find_element(By.CSS_SELECTOR, 'p.text-sm:nth-child(3)').text
         cleaned_sold_str = re.sub(r'[^\d.]', '', product_sold)
@@ -89,6 +90,7 @@ def scrape_product(product_link):
     except:
         product_sold = "N/A"
 
+    # Lấy loại thuốc
     try:
         product_type = driver.find_element(By.CSS_SELECTOR, "div.md\\:text-base").text
     except:
@@ -102,11 +104,13 @@ def scrape_product(product_link):
     except:
         product_spec = "N/A"
 
+    # Lấy hoạt tính
     try:
         active_element = driver.find_element(By.CSS_SELECTOR, "#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(2) > div").text
     except:
         active_element = "N/A"
 
+    #Lấy chỉ định
     try:
         indication = driver.find_element(By.CSS_SELECTOR, "#mainContent > div > div:nth-child(1) > div.relative.grid.grid-cols-1.gap-6.md\\:container.md\\:grid-cols-\\[min\\(60\\%\\,calc\\(555rem\\/16\\)\\)\\,1fr\\].md\\:pt-6.lg\\:grid-cols-\\[min\\(72\\%\\,calc\\(888rem\\/16\\)\\)\\,1fr\\] > div.grid.md\\:gap-6 > div.grid.grid-cols-1.items-start.md\\:gap-6.lg\\:grid-cols-2.xl\\:grid-cols-2 > div:nth-child(2) > div > div.flex.flex-col.px-4.md\\:px-0 > div.gap-3.md\\:gap-4.mb-3.grid.md\\:mb-4 > div.grid.gap-3.md\\:gap-2 > div:nth-child(3) > div").text
     except:
