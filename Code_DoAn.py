@@ -8,8 +8,8 @@ import re
 
 # Kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
-db = client['pharmacity']
-client.drop_database('pharmacity')
+db = client['pharmacityDB']
+client.drop_database('pharmacityDB')
 
 products_collection = db['products']
 sales_collection = db['sales']
@@ -180,7 +180,7 @@ def get_product_links():
 
 load_all_products()
 links = get_product_links()
-#print(f'Tổng số link sản phẩm {len(links)} \n')
+print(f'Tổng số link sản phẩm {len(links)} \n')
 
 # Cào dữ liệu từ trang web
 for link in links:

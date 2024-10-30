@@ -2,7 +2,7 @@ from pymongo import MongoClient
 import time
 
 client = MongoClient("mongodb://localhost:27017/")
-db = client['pharmacity']
+db = client['pharmacityDB']
 products_collection = db['products']
 sales_collection = db['sales']
 products_detail = db['details']
@@ -15,7 +15,7 @@ print(f'Tổng số sản phẩm trong products là: {sl}')
 print('\n')
 
 # 2.Tìm sản phẩm không kê đơn có giá cao nhất
-highest_price = db.products.find({"Type": "Thuốc không kê đơn"}).sort("Price", -1).limit(1)
+highest_price = db.products.find({"Type": "Thuốc không kê đơn", "Price": {"$ne": "N/A"}}).sort("Price", -1).limit(1)
 print("Thuốc không kê đơn có giá cao nhất:")
 for product in highest_price:
     print(product)
@@ -152,7 +152,7 @@ total_sales = db.sales.aggregate([
         "$unwind": "$product_info"
     },
     {
-        "$match": {"product_info.Type": "Thuốc không kê đơn"},
+        "$match": {"product_info.Type": "Thuốc không kê đơn", "product_info.Price": {"$ne": "N/A"}},
     },
     {
         "$group": {
