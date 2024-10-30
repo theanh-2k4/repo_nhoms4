@@ -27,7 +27,7 @@ time.sleep(3)
 def scrape_product(product_link):
     # Mở link sản phẩm
     driver.get(product_link)
-    time.sleep(3)
+    time.sleep(2)
 
     # Lấy mã sản phẩm
     try:
@@ -64,11 +64,12 @@ def scrape_product(product_link):
 
     # Lấy giá bán
     try:
-        product_price = driver.find_element(By.TAG_NAME, 'h3').text
+        product_price = driver.find_element(By.XPATH, '//*[@id="mainContent"]/div/div[1]/div[3]/div[1]/div[1]/div[2]/div/div[3]/div[3]/h3').text
         # Sử dụng regex để loại bỏ các ký tự không phải số và dấu phân cách thập phân
         # Giữ lại số và dấu chấm (.)
-        cleaned_price_str = re.sub(r'[^\d.]', '', product_price)
-        product_price = float(cleaned_price_str)
+        cleaned_price = re.search(r"\d+\.\d+", product_price)
+        cleaned_price_str = cleaned_price.group()
+        product_price = float(cleaned_price_str)*1000
     except:
         product_price = "N/A"
 
@@ -76,7 +77,7 @@ def scrape_product(product_link):
     try:
         product_likes = driver.find_element(By.CSS_SELECTOR, 'div.space-x-1:nth-child(2) > p:nth-child(1)').text
         cleaned_likes_str = re.sub(r'[^\d.]', '', product_likes)
-        product_likes = int(cleaned_likes_str) * 1000
+        product_likes = float(cleaned_likes_str) * 1000
     except:
         product_likes = "N/A"
 
@@ -84,7 +85,7 @@ def scrape_product(product_link):
     try:
         product_sold = driver.find_element(By.CSS_SELECTOR, 'p.text-sm:nth-child(3)').text
         cleaned_sold_str = re.sub(r'[^\d.]', '', product_sold)
-        product_sold = int(cleaned_sold_str) * 1000
+        product_sold = float(cleaned_sold_str) * 1000
     except:
         product_sold = "N/A"
 
