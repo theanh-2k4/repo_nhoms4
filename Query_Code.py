@@ -35,7 +35,6 @@ for tim in timhoattinh:
 print('\n')
 
 # 5.Đếm số sản phẩm có nguồn gốc từ "Việt Nam"
-
 fromVN = db.details.count_documents({"Product_origin": "Việt Nam"})
 print(f'Tổn số sản phẩm đến từ VN là {fromVN}')
 print('\n')
@@ -109,23 +108,23 @@ for product in lowest:
 print('\n')
 
 # 13.Tìm sản phẩm có số lượt thích cao nhất và trả về tên, giá bán, like só lượng bán ra sản phẩm
-highest = db.sales.aggregate([{
+highest = db.sales.aggregate([
+    {
         "$lookup": {
             "from": "products",
             "localField": "Product_ID",
             "foreignField": "Product_ID",
-            "as": "product_info"
-        }},
-    {
-        "$unwind": "$product_info"},{"$sort": {"Likes": -1}},{"$limit": 1},
-    {
-        "$project": {
+            "as": "product_info"}},
+    {"$unwind": "$product_info"},
+    {"$match": {"Likes": {"$ne": "N/A"}} },
+    {"$sort": {"Likes": -1}},
+    {"$limit": 1  },
+    {"$project": {
             "Product_Name": "$product_info.Product_Name",
             "Price": "$product_info.Price",
             "Likes": "$Likes",
             "Sold": "$Sold"
-        }
-    }
+        }}
 ])
 print('Sản phẩm có lượt thích cao nhất là:')
 for product in highest:
@@ -133,7 +132,8 @@ for product in highest:
 print('\n')
 
 # 14.Tính tổng số lượng sản phẩm bán được từ collection 'sales'
-sold_c = db.sales.aggregate([{"$group": {"_id": None, "Tổng số thuốc không kê đơn bán ra là:": {"$sum": "$Sold"}}}])
+sold_c = db.sales.aggregate([{"$group": {"_id": None,
+                                         "Tổng số thuốc không kê đơn bán ra là:": {"$sum": "$Sold"}}}])
 for c in sold_c:
     print(c)
 print('\n')
@@ -145,21 +145,14 @@ total_sales = db.sales.aggregate([
             "from": "products",
             "localField": "Product_ID",
             "foreignField": "Product_ID",
-            "as": "product_info"
-        }
-    },
-    {
-        "$unwind": "$product_info"
-    },
-    {
-        "$match": {"product_info.Type": "Thuốc không kê đơn", "product_info.Price": {"$ne": "N/A"}},
-    },
-    {
-        "$group": {
+            "as": "product_info"}},
+    {"$unwind": "$product_info"},
+    {"$match": {"product_info.Type": "Thuốc không kê đơn", "product_info.Price": {"$ne": "N/A"}},},
+    {"$group": {
             "_id": None,
-            "Tổng số tiền bán thuốc không kê đơn là": {"$sum": {"$multiply": ["$Sold", "$product_info.Price"]}}
-        }
-    }
+            "Tổng số tiền bán thuốc không kê đơn là": {"$sum":
+                                                           {"$multiply": ["$Sold", "$product_info.Price"]}}
+        }}
 ])
 for s in total_sales:
     print(s)
