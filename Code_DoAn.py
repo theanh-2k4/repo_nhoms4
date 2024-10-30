@@ -184,6 +184,9 @@ links = get_product_links()
 
 # Cào dữ liệu từ trang web
 for link in links:
-    scrape_product(link)
+    try:
+        scrape_product(link)
+    except:
+        print("Lỗi")
 driver.quit()
 

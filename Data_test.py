@@ -7,79 +7,159 @@ products_collection = db['products']
 sales_collection = db['sales']
 products_detail = db['details']
 
-#Liệt kê thông tin, số lượng dược phẩm được lưu trong database pharmacity
-count =0
-# for product in products_collection.find().sort({'Price': -1}):
-#     count += 1
-#     print(product)
-# print(f'Số lượng dược phẩm trong db: {count}')
-
-# Sắp xếp các dược phẩm theo số lượng bán giảm dần, loại bỏ các thuốc thuộc loại kê đơn
-ckd = 0
-for product in sales_collection.find().sort({'Sold': -1}):
+# 1.Hiện tất cả các sản phẩm và số lượng sản phẩm trong collection 'products'
+for product in db.products.find():
     print(product)
+sl = db.products.count_documents({})
+print(f'Tổng số sản phẩm trong products là: {sl}')
+print('\n')
 
-#In sản phẩm bán chạy nhất, hiển thị tên, id, xuất xứ, số lượng bán, lượt thích
-def banchaynhat():
-    banchaynhat = sales_collection.aggregate([
-        {"$match": {"Sold": {"$ne": "N/A"}}},  # Loại bỏ các sản phẩm có Sold là 'N/A', thuốc kê dơn
-        {"$sort": {"Sold": -1}},               # Sắp xếp theo Sold từ cao đến thấp
-        {"$limit": 1},                         # Lấy sản phẩm bán chạy nhất
-        {"$lookup": {                          # Kết hợp với collection 'products' để lấy các thông tin khác của sản phẩm
+# 2.Tìm sản phẩm không kê đơn có giá cao nhất
+highest_price = db.products.find({"Type": "Thuốc không kê đơn"}).sort("Price", -1).limit(1)
+print("Thuốc không kê đơn có giá cao nhất:")
+for product in highest_price:
+    print(product)
+print('\n')
+
+# 3.Tìm sản phẩm không kê đơn có giá thấp nhất
+lowest_price = db.products.find({"Type": "Thuốc không kê đơn"}).sort("Price", 1).limit(1)
+print("Thuốc không kê đơn có giá thấp nhất:")
+for product in lowest_price:
+    print(product)
+print('\n')
+
+# 4.Lấy sản phẩm có thành phần hoạt tính chứa "Levocetirizin"
+timhoattinh = db.details.find({"Active_element": {"$regex": "Levocetirizin", "$options": "i"}})
+for tim in timhoattinh:
+    print(f'Thuốc có hoạt tính Levocetirizin là {tim}')
+print('\n')
+
+# 5.Đếm số sản phẩm có nguồn gốc từ "Việt Nam"
+
+fromVN = db.details.count_documents({"Product_origin": "Việt Nam"})
+print(f'Tổn số sản phẩm đến từ VN là {fromVN}')
+print('\n')
+
+# 6.Đếm số sản phẩm không có nguồn gốc từ "Việt Nam"
+notfromVN = db.details.count_documents({"Product_origin": {"$ne":"Việt Nam"}})
+print(f'Tổn số sản phẩm không đến từ VN là {notfromVN}')
+print('\n')
+
+# 7.Tìm sản phẩm có giá bán hơn 100k
+print('Sản phẩm có giá bán hơn 100k:')
+for p in db.products.find({"Price": {"$gt": 100000}}):
+    print(p)
+print('\n')
+
+# 8.Tìm sản phẩm có số lượng bán hơn 5000
+print('Sản phẩm có số lượng bán hơn 5000:')
+for p in db.sales.find({"Sold": {"$gt": 5000}}):
+    print(p)
+print('\n')
+
+# 9.Lấy thông tin chi tiết sản phẩm và với thông tin bán hàng
+product_sales_details = db.sales.aggregate([
+    {
+        "$lookup": {
             "from": "products",
-            "localField": "Product_ID",        #kết nối thông tin sản phẩm thông qua product_id
+            "localField": "Product_ID",
+            "foreignField": "Product_ID",
+            "as": "product_info"
+        }
+    }
+])
+print('Thông tin chi tiết sản phẩm: ')
+for p in product_sales_details:
+    print(p)
+print('\n')
+
+# 10.Tìm sản phẩm có tên chứa từ khóa Eagle
+print('Sản phẩm có tên chứa từ khóa Eagle: ')
+for p in db.products.find({"Product_Name": {"$regex": "Eagle"}}):
+    print(p)
+print('\n')
+
+# 11. Tìm sản phẩm theo Product_ID
+product = db.products.find_one({"Product_ID": "P14941"})
+print(f'Sản phẩm có ID P14941 là: \t{product}')
+print('\n')
+
+# 12.Tìm sản phẩm có số lượt thích thấp nhất và trả về tên, giá bán, like só lượng bán ra sản phẩm
+lowest = db.sales.aggregate([{
+        "$lookup": {
+            "from": "products",
+            "localField": "Product_ID",
             "foreignField": "Product_ID",
             "as": "product_info"
         }},
-        {"$unwind": "$product_info"},
-        {"$project": {                         # Chọn các trường cần thiết
+    {
+        "$unwind": "$product_info"},{"$sort": {"Likes": 1}},{"$limit": 1},
+    {
+        "$project": {
             "Product_Name": "$product_info.Product_Name",
-            "Product_ID": "$Product_ID",
-            "Product_origin": "$product_info.Product_origin",
             "Price": "$product_info.Price",
-            "Sold": "$Sold",
-            "Likes": "$Likes"
-        }}
-    ])
-
-    for p in banchaynhat:
-        print(f'Sản phẩm bán chạy nhất:\n {p}')
-
-#Liệt kê mã sp, tên, tổng số tiền bán thuốc được, không bao gồm thuốc kê đơn
-def ketquaban():
-    ketquaban = products_collection.aggregate([
-        {"$match": {"Price": {"$ne": "N/A"}}},  # Lọc các sản phẩm không phải thuốc kê đơn
-        {
-            "$lookup": {  # Kết hợp với collection 'sales'
-                "from": "sales",
-                "localField": "Product_ID",
-                "foreignField": "Product_ID",
-                "as": "sales_info"
-            }
-        },
-        {"$unwind": {"path": "$sales_info", "preserveNullAndEmptyArrays": True}},  # Bóc tách mảng sales_info
-        {
-            "$group": {  # Nhóm theo Product_ID và Product_Name
-                "_id": {
-                    "Product_ID": "$Product_ID",
-                    "Product_Name": "$Product_Name"
-                },
-                "Total_Sales": {
-                    "$sum": {"$multiply": ["$sales_info.Sold", "$Price"]}  # Tính tổng số tiền bán
-                }
-            }
-        },
-        {
-            "$project": {  # Chọn các trường cần thiết
-                "Product_ID": "$_id.Product_ID",
-                "Product_Name": "$_id.Product_Name",
-                "Total_Sales": {"$ifNull": ["$Total_Sales", 0]}  # Đảm bảo không có giá trị null
-            }
+            "Likes": "$Likes",
+            "Sold": "$Sold"
         }
-    ])
+    }
+])
+print('Sản phẩm có lượt thích thấp nhất là:')
+for product in lowest:
+    print(product)
+print('\n')
 
+# 13.Tìm sản phẩm có số lượt thích cao nhất và trả về tên, giá bán, like só lượng bán ra sản phẩm
+highest = db.sales.aggregate([{
+        "$lookup": {
+            "from": "products",
+            "localField": "Product_ID",
+            "foreignField": "Product_ID",
+            "as": "product_info"
+        }},
+    {
+        "$unwind": "$product_info"},{"$sort": {"Likes": -1}},{"$limit": 1},
+    {
+        "$project": {
+            "Product_Name": "$product_info.Product_Name",
+            "Price": "$product_info.Price",
+            "Likes": "$Likes",
+            "Sold": "$Sold"
+        }
+    }
+])
+print('Sản phẩm có lượt thích cao nhất là:')
+for product in highest:
+    print(product)
+print('\n')
 
-    for p in ketquaban:
-        print(p)
+# 14.Tính tổng số lượng sản phẩm bán được từ collection 'sales'
+sold_c = db.sales.aggregate([{"$group": {"_id": None, "Tổng số thuốc không kê đơn bán ra là:": {"$sum": "$Sold"}}}])
+for c in sold_c:
+    print(c)
+print('\n')
 
-ketquaban()
+# 15.Tính tổng số tiền bán thuốc không kê đơn
+total_sales = db.sales.aggregate([
+    {
+        "$lookup": {
+            "from": "products",
+            "localField": "Product_ID",
+            "foreignField": "Product_ID",
+            "as": "product_info"
+        }
+    },
+    {
+        "$unwind": "$product_info"
+    },
+    {
+        "$match": {"product_info.Type": "Thuốc không kê đơn"},
+    },
+    {
+        "$group": {
+            "_id": None,
+            "Tổng số tiền bán thuốc không kê đơn là": {"$sum": {"$multiply": ["$Sold", "$product_info.Price"]}}
+        }
+    }
+])
+for s in total_sales:
+    print(s)
